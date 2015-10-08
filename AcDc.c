@@ -256,7 +256,7 @@ Expression *parseExpressionTail( FILE *source, Expression *lvalue )
             expr = (Expression *)malloc( sizeof(Expression) );
             (expr->v).type = MulNode;
             (expr->v).val.op = Mul;
-            if( (lvalue->v).type == PlusOp || (lvalue->v).type == MinusOp ) {
+            if( (lvalue->v).val.op == Plus || (lvalue->v).val.op == Minus ) {
                 expr->leftOperand = lvalue->rightOperand;
                 lvalue->rightOperand = expr;
             }
@@ -264,12 +264,12 @@ Expression *parseExpressionTail( FILE *source, Expression *lvalue )
                 expr->leftOperand = lvalue;
             }
             expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, expr);
+            return parseExpressionTail(source, lvalue);
         case DivOp:
             expr = (Expression *)malloc( sizeof(Expression) );
             (expr->v).type = DivNode;
             (expr->v).val.op = Div;
-            if( (lvalue->v).type == PlusOp || (lvalue->v).type == MinusOp ) {
+            if( (lvalue->v).val.op == Plus || (lvalue->v).val.op == Minus ) {
                 expr->leftOperand = lvalue->rightOperand;
                 lvalue->rightOperand = expr;
             }
@@ -277,7 +277,7 @@ Expression *parseExpressionTail( FILE *source, Expression *lvalue )
                 expr->leftOperand = lvalue;
             }
             expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, expr);
+            return parseExpressionTail(source, lvalue);
         case Alphabet:
         case PrintOp:
             while(islower(token.tok[i++]));
@@ -318,7 +318,7 @@ Expression *parseExpression( FILE *source, Expression *lvalue )
             expr = (Expression *)malloc( sizeof(Expression) );
             (expr->v).type = MulNode;
             (expr->v).val.op = Mul;
-            if( (lvalue->v).type == PlusOp || (lvalue->v).type == MinusOp ) {
+            if( (lvalue->v).val.op == Plus || (lvalue->v).val.op == Minus ) {
                 expr->leftOperand = lvalue->rightOperand;
                 lvalue->rightOperand = expr;
             }
@@ -326,12 +326,12 @@ Expression *parseExpression( FILE *source, Expression *lvalue )
                 expr->leftOperand = lvalue;
             }
             expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, expr);
+            return parseExpressionTail(source, lvalue);
         case DivOp:
             expr = (Expression *)malloc( sizeof(Expression) );
             (expr->v).type = DivNode;
             (expr->v).val.op = Div;
-            if( (lvalue->v).type == PlusOp || (lvalue->v).type == MinusOp ) {
+            if( (lvalue->v).val.op == Plus || (lvalue->v).val.op == Minus ) {
                 expr->leftOperand = lvalue->rightOperand;
                 lvalue->rightOperand = expr;
             }
@@ -339,7 +339,7 @@ Expression *parseExpression( FILE *source, Expression *lvalue )
                 expr->leftOperand = lvalue;
             }
             expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, expr);
+            return parseExpressionTail(source, lvalue);
         case Alphabet:
         case PrintOp:
             while(islower(token.tok[i++]));
@@ -704,6 +704,12 @@ void fprint_op( FILE *target, ValueType op )
             break;
         case PlusNode:
             fprintf(target,"+\n");
+            break;
+        case MulNode:
+            fprintf(target,"*\n");
+            break;
+        case DivNode:
+            fprintf(target,"/\n");
             break;
         default:
             fprintf(target,"Error in fprintf_op ValueType = %d\n",op);
