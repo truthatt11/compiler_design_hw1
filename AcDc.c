@@ -177,6 +177,7 @@ Declaration parseDeclaration( FILE *source, Token token )
 
 Declarations *parseDeclarations( FILE *source )
 {
+    int i=0;
     Token token = scanner(source);
     Declaration decl;
     Declarations *decls;
@@ -188,7 +189,10 @@ Declarations *parseDeclarations( FILE *source )
             return makeDeclarationTree( decl, decls );
         case PrintOp:
         case Alphabet:
-            ungetc(token.tok[0], source);
+            while(islower(token.tok[i++]));
+            --i;
+            while(i>0)
+                ungetc(token.tok[--i], source);
             return NULL;
         case EOFsymbol:
             return NULL;
@@ -229,6 +233,7 @@ Expression *parseValue( FILE *source )
 
 Expression *parseExpressionTail( FILE *source, Expression *lvalue )
 {
+    int i=0;
     Token token = scanner(source);
     Expression *expr;
 
@@ -275,7 +280,10 @@ Expression *parseExpressionTail( FILE *source, Expression *lvalue )
             return parseExpressionTail(source, expr);
         case Alphabet:
         case PrintOp:
-            ungetc(token.tok[0], source);
+            while(islower(token.tok[i++]));
+            --i;
+            while(i>0)
+                ungetc(token.tok[--i], source);
             return lvalue;
         case EOFsymbol:
             return lvalue;
@@ -287,6 +295,7 @@ Expression *parseExpressionTail( FILE *source, Expression *lvalue )
 
 Expression *parseExpression( FILE *source, Expression *lvalue )
 {
+    int i=0;
     Token token = scanner(source);
     Expression *expr;
 
@@ -333,7 +342,10 @@ Expression *parseExpression( FILE *source, Expression *lvalue )
             return parseExpressionTail(source, expr);
         case Alphabet:
         case PrintOp:
-            ungetc(token.tok[0], source);
+            while(islower(token.tok[i++]));
+            --i;
+            while(i>0)
+                ungetc(token.tok[--i], source);
             return NULL;
         case EOFsymbol:
             return NULL;
@@ -382,6 +394,7 @@ Statements *parseStatements( FILE * source )
     Statement stmt;
     Statements *stmts;
 
+
     switch(token.type){
         case Alphabet:
         case PrintOp:
@@ -416,6 +429,7 @@ Declaration makeDeclarationNode( Token declare_type, Token identifier )
             break;
     }
     while(identifier.tok[i] != '\0') { tree_node.name[i] = identifier.tok[i]; i++; }
+    tree_node.name[i] = '\0';
 
     return tree_node;
 }
@@ -575,26 +589,31 @@ DataType generalize( Expression *left, Expression *right )
     return Int;
 }
 
-DataType lookup_table( SymbolTable *table, char c[] )
+DataType lookup_table( SymbolTable *table, char c )
 {
-    int id = table->table_size, i;
-    for(i=0; i<table->table_size; i++)
-	if(strcmp(table->id[i], c)==0)
-            id = i;
-    if( id == table->table_size || (table->table[id] != Int && table->table[id] != Float) )
-        printf("Error : identifier %s is not declared\n", c);//error
+    int id = c - 'a';
+    if( table->table[id] != Int && table->table[id] != Float )
+        printf("Error : identifier %c is not declared\n", c);//error
     return table->table[id];
 }
 
 void checkexpression( Expression * expr, SymbolTable * table )
 {
-    char c[65];
+    char tran[25] = "abcdeghjklmnoqrstuvwxyz";
+    char c;
+    int i=0;
     if(expr->leftOperand == NULL && expr->rightOperand == NULL){
         switch(expr->v.type){
             case Identifier:
                 //c = expr->v.val.id;
-                strcpy(c, expr->v.val.id);
-                printf("identifier : %s\n",c);
+                for(i=0; i<table->table_size; i++) {
+                    if( strcmp(expr->v.val.id, table->id[i]) == 0 ) {
+                        expr->v.val.id[0] = tran[i];
+                        expr->v.val.id[1] = '\0';
+                    }
+                }
+                c = expr->v.val.id[0];
+                printf("identifier : %c\n",c);
                 expr->type = lookup_table(table, c);
                 break;
             case IntConst:
@@ -626,11 +645,24 @@ void checkexpression( Expression * expr, SymbolTable * table )
 
 void checkstmt( Statement *stmt, SymbolTable * table )
 {
+    int i=0;
+    char tran[25] = "abcdeghjklmnoqrstuvwxyz";
+
     if(stmt->type == Assignment){
         AssignmentStatement assign = stmt->stmt.assign;
-        printf("assignment : %s \n",assign.id);
+/* change variable name */
+        for(i=0; i<table->table_size; i++) {
+            if( strcmp(assign.id, table->id[i]) == 0 ) {
+                stmt->stmt.assign.id[0] = tran[i];
+                stmt->stmt.assign.id[1] = '\0';
+            }
+        }
+        printf("assignment : %s \n",stmt->stmt.assign.id);
+//        printf("assignment : %s \n",assign.id);
         checkexpression(assign.expr, table);
-        stmt->stmt.assign.type = lookup_table(table, assign.id);
+//        stmt->stmt.assign.type = lookup_table(table, assign.id);
+        stmt->stmt.assign.type = lookup_table(table, stmt->stmt.assign.id[0]);
+        /* Type problem? */
         if (assign.expr->type == Float && stmt->stmt.assign.type == Int) {
             printf("error : can't convert float to integer\n");
         } else {
@@ -638,14 +670,21 @@ void checkstmt( Statement *stmt, SymbolTable * table )
         }
     }
     else if (stmt->type == Print){
+        for(i=0; i<table->table_size; i++) {
+            if( strcmp(stmt->stmt.variable, table->id[i]) == 0 ) {
+                stmt->stmt.variable[0] = tran[i];
+                stmt->stmt.variable[1] = '\0';
+            }
+        }
         printf("print : %s \n",stmt->stmt.variable);
-        lookup_table(table, stmt->stmt.variable);
+        lookup_table(table, stmt->stmt.variable[0]);
     }
     else printf("error : statement error\n");//error
 }
 
 void check( Program *program, SymbolTable * table )
 {
+    /* do variable mapping here */
     Statements *stmts = program->statements;
     while(stmts != NULL){
         checkstmt(&stmts->first,table);

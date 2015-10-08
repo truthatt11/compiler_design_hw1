@@ -39,7 +39,6 @@ typedef struct Token{
 typedef struct Declaration{
     DataType type;
     char name[65];
-    // TODO HERE: variable length
 }Declaration;
 
 /* 
@@ -58,7 +57,6 @@ typedef struct Value{
     ValueType type;
     union{
         char id[65];                   /* if the node represent the access of the identifier */
-        // TODO HERE: variable length
         Operation op;              /* store +, -, *, /, =, type_convert */
         int ivalue;                /* for integer constant in the expression */
         float fvalue;              /* for float constant */
@@ -136,7 +134,7 @@ void add_table( SymbolTable *table, char c[], DataType t );
 SymbolTable build( Program program );
 void convertType( Expression * old, DataType type );
 DataType generalize( Expression *left, Expression *right );
-DataType lookup_table( SymbolTable *table, char c[] );
+DataType lookup_table( SymbolTable *table, char c );
 void checkexpression( Expression * expr, SymbolTable * table );
 void checkstmt( Statement *stmt, SymbolTable * table );
 void check( Program *program, SymbolTable * table);
