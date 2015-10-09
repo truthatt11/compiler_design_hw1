@@ -256,28 +256,28 @@ Expression *parseExpressionTail( FILE *source, Expression *lvalue )
             expr = (Expression *)malloc( sizeof(Expression) );
             (expr->v).type = MulNode;
             (expr->v).val.op = Mul;
-            if( (lvalue->v).val.op == Plus || (lvalue->v).val.op == Minus ) {
+            expr->rightOperand = parseValue(source);
+            if( (lvalue->v).type == PlusNode || (lvalue->v).type == MinusNode ) {
                 expr->leftOperand = lvalue->rightOperand;
                 lvalue->rightOperand = expr;
+                return parseExpressionTail(source, lvalue);
             }
-            else {
-                expr->leftOperand = lvalue;
-            }
-            expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, lvalue);
+            expr->leftOperand = lvalue;
+            return parseExpressionTail(source, expr);
         case DivOp:
             expr = (Expression *)malloc( sizeof(Expression) );
             (expr->v).type = DivNode;
             (expr->v).val.op = Div;
-            if( (lvalue->v).val.op == Plus || (lvalue->v).val.op == Minus ) {
+            expr->rightOperand = parseValue(source);
+            if( (lvalue->v).type == PlusNode || (lvalue->v).type == MinusNode ) {
                 expr->leftOperand = lvalue->rightOperand;
                 lvalue->rightOperand = expr;
+                return parseExpressionTail(source, lvalue);
             }
             else {
                 expr->leftOperand = lvalue;
+                return parseExpressionTail(source, expr);
             }
-            expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, lvalue);
         case Alphabet:
         case PrintOp:
             while(islower(token.tok[i++]));
@@ -318,28 +318,28 @@ Expression *parseExpression( FILE *source, Expression *lvalue )
             expr = (Expression *)malloc( sizeof(Expression) );
             (expr->v).type = MulNode;
             (expr->v).val.op = Mul;
-            if( (lvalue->v).val.op == Plus || (lvalue->v).val.op == Minus ) {
+            expr->rightOperand = parseValue(source);
+            if( (lvalue->v).type == PlusNode || (lvalue->v).type == MinusNode ) {
                 expr->leftOperand = lvalue->rightOperand;
                 lvalue->rightOperand = expr;
+                return parseExpressionTail(source, lvalue);
             }
-            else {
-                expr->leftOperand = lvalue;
-            }
-            expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, lvalue);
+            expr->leftOperand = lvalue;
+            return parseExpressionTail(source, expr);
         case DivOp:
             expr = (Expression *)malloc( sizeof(Expression) );
             (expr->v).type = DivNode;
             (expr->v).val.op = Div;
-            if( (lvalue->v).val.op == Plus || (lvalue->v).val.op == Minus ) {
+            expr->rightOperand = parseValue(source);
+            if( (lvalue->v).type == PlusNode || (lvalue->v).type == MinusNode ) {
                 expr->leftOperand = lvalue->rightOperand;
                 lvalue->rightOperand = expr;
+                return parseExpressionTail(source, lvalue);
             }
             else {
                 expr->leftOperand = lvalue;
+                return parseExpressionTail(source, expr);
             }
-            expr->rightOperand = parseValue(source);
-            return parseExpressionTail(source, lvalue);
         case Alphabet:
         case PrintOp:
             while(islower(token.tok[i++]));
@@ -602,7 +602,7 @@ void checkexpression( Expression * expr, SymbolTable * table )
     char tran[25] = "abcdeghjklmnoqrstuvwxyz";
     char c;
     int i=0;
-    if(expr == NULL) return;
+
     if(expr->leftOperand == NULL && expr->rightOperand == NULL){
         switch(expr->v.type){
             case Identifier:
@@ -700,7 +700,6 @@ void check( Program *program, SymbolTable * table )
 
 void opt( Expression *expr )
 {
-    if(expr == NULL) return;
     Expression *left = expr->leftOperand;
     Expression *right = expr->rightOperand;
     if(left != NULL) opt(left);
@@ -801,7 +800,7 @@ void fprint_op( FILE *target, ValueType op )
 
 void fprint_expr( FILE *target, Expression *expr)
 {
-    if(expr == NULL) return;
+
     if(expr->leftOperand == NULL){
         switch( (expr->v).type ){
             case Identifier:
