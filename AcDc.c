@@ -602,6 +602,7 @@ void checkexpression( Expression * expr, SymbolTable * table )
     char tran[25] = "abcdeghjklmnoqrstuvwxyz";
     char c;
     int i=0;
+    if(expr == NULL) return;
     if(expr->leftOperand == NULL && expr->rightOperand == NULL){
         switch(expr->v.type){
             case Identifier:
@@ -694,6 +695,87 @@ void check( Program *program, SymbolTable * table )
 
 
 /***********************************************************************
+  Optimization
+ ************************************************************************/
+
+void opt( Expression *expr )
+{
+    if(expr == NULL) return;
+    Expression *left = expr->leftOperand;
+    Expression *right = expr->rightOperand;
+    if(left != NULL) opt(left);
+    if(right != NULL) opt(right);
+
+    if(right != NULL && left != NULL) {
+        if(right->v.type == IntToFloatConvertNode) {
+            if(right->leftOperand->v.type == IntConst) {
+                right->v.type = FloatConst;
+            }else return;
+            right->v.val.fvalue = right->leftOperand->v.val.ivalue;
+            right->v.type = FloatConst;
+            free(right->leftOperand);
+            right->leftOperand = right->rightOperand = NULL;
+            right->type = Float;
+        }
+        if(left->v.type == IntToFloatConvertNode) {
+            if(left->leftOperand->v.type == IntConst) {
+                left->v.type = FloatConst;
+            }else return;
+            left->v.val.fvalue = left->leftOperand->v.val.ivalue;
+            left->v.type = FloatConst;
+            free(left->leftOperand);
+            left->leftOperand = left->rightOperand = NULL;
+            left->type = Float;
+        }
+        
+        if(right->v.type != IntConst && right->v.type != FloatConst)
+            return;
+        if(left->v.type != IntConst && left->v.type != FloatConst)
+            return;
+
+	ValueType type;
+	if(right->v.type == FloatConst || left->v.type == FloatConst)
+	    type = FloatConst;
+	else type = IntConst;
+
+	switch(expr->v.type) {
+	    case MinusNode:
+		if(type == FloatConst)
+		    expr->v.val.fvalue = left->v.val.fvalue - right->v.val.fvalue;
+		if(type == IntConst)
+		    expr->v.val.ivalue = left->v.val.ivalue - right->v.val.ivalue;
+                break;
+	    case PlusNode:
+		if(type == FloatConst)
+		    expr->v.val.fvalue = left->v.val.fvalue + right->v.val.fvalue;
+		if(type == IntConst)
+		    expr->v.val.ivalue = left->v.val.ivalue + right->v.val.ivalue;
+		break;
+	    case MulNode:
+		if(type == FloatConst)
+		    expr->v.val.fvalue = left->v.val.fvalue * right->v.val.fvalue;
+		if(type == IntConst)
+		    expr->v.val.ivalue = left->v.val.ivalue * right->v.val.ivalue;
+		break;
+	    case DivNode:
+		if(type == FloatConst)
+		    expr->v.val.fvalue = left->v.val.fvalue / right->v.val.fvalue;
+		if(type == IntConst)
+		    expr->v.val.ivalue = left->v.val.ivalue / right->v.val.ivalue;
+		break;
+            default:
+                printf("Constant Folding error: Node error %d\n", expr->v.type);
+		break;
+	}
+        free(left);
+        free(right);
+        expr->v.type = type;
+        expr->leftOperand = expr->rightOperand = NULL;
+    }
+}
+
+
+/***********************************************************************
   Code generation
  ************************************************************************/
 void fprint_op( FILE *target, ValueType op )
@@ -719,7 +801,7 @@ void fprint_op( FILE *target, ValueType op )
 
 void fprint_expr( FILE *target, Expression *expr)
 {
-
+    if(expr == NULL) return;
     if(expr->leftOperand == NULL){
         switch( (expr->v).type ){
             case Identifier:
@@ -762,6 +844,7 @@ void gencode(Program prog, FILE * target)
                 fprintf(target,"p\n");
                 break;
             case Assignment:
+                opt(stmt.stmt.assign.expr);
                 fprint_expr(target, stmt.stmt.assign.expr);
                 /*
                    if(stmt.stmt.assign.type == Int){

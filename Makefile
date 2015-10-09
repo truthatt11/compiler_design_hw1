@@ -1,4 +1,4 @@
 All:
-	gcc AcDc.c -o AcDc
+	gcc -g AcDc.c -o AcDc
 clean:
 	rm AcDc
