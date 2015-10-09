@@ -611,10 +611,12 @@ void checkexpression( Expression * expr, SymbolTable * table )
                     if( strcmp(expr->v.val.id, table->id[i]) == 0 ) {
                         expr->v.val.id[0] = tran[i];
                         expr->v.val.id[1] = '\0';
+                        break;
                     }
                 }
-                c = expr->v.val.id[0];
-                printf("identifier : %c\n",c);
+                if(i == table->table_size) c = 'i';
+                else   c = expr->v.val.id[0];
+                printf("identifier : %c\n",expr->v.val.id[0]);
                 expr->type = lookup_table(table, c);
                 break;
             case IntConst:
@@ -807,9 +809,15 @@ void fprint_expr( FILE *target, Expression *expr)
                 fprintf(target,"l%s\n",(expr->v).val.id);
                 break;
             case IntConst:
+                if((expr->v).val.ivalue  < 0) {
+                    fprintf(target, "_"); (expr->v).val.ivalue *= -1;
+                }
                 fprintf(target,"%d\n",(expr->v).val.ivalue);
                 break;
             case FloatConst:
+                if((expr->v).val.fvalue  < 0.0) {
+                    fprintf(target, "_"); (expr->v).val.fvalue *= -1.0;
+                }
                 fprintf(target,"%f\n", (expr->v).val.fvalue);
                 break;
             default:
@@ -820,7 +828,7 @@ void fprint_expr( FILE *target, Expression *expr)
     else{
         fprint_expr(target, expr->leftOperand);
         if(expr->rightOperand == NULL){
-            fprintf(target,"5k\n");
+            fprintf(target,"5 k\n");
         }
         else{
             //	fprint_right_expr(expr->rightOperand);
@@ -853,7 +861,8 @@ void gencode(Program prog, FILE * target)
                    fprintf(target,"5 k\n");
                    }*/
                 fprintf(target,"s%s\n",stmt.stmt.assign.id);
-                fprintf(target,"0 k\n");
+                if(stmt.stmt.assign.type == Int) fprintf(target,"0 k\n");
+                else fprintf(target, "5 k\n");
                 break;
         }
         stmts=stmts->rest;
